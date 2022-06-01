@@ -1,3 +1,3 @@
 ### Onsunsl 笔记 
 
-#### * [常用工具](./tools/tools.md) 
+#### 1.[常用工具](note/tools/tools.md) 
