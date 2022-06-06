@@ -115,7 +115,38 @@ WARNING: You are using pip version 21.1.2; however, version 21.3.1 is available.
 You should consider upgrading via the 'C:\Users\guanglin.liang\pythonEnv\withPdbInfo\Scripts\python.exe -m pip install --upgrade pip' command.
 ```
 
+### 打包&安装拷贝非代码的数据
+* 添加MANIFEST.in 文件
+* setup() 添加如下选项
+```python
+    include_package_data=True,
+    package_data={
+        # 根据你自己的目录决定
+        "first_package.data": ["first_package/data/*"]
+    }
+```
+
+
+### 依赖包问题
+* 依赖包可以在setup.py里调用pip包解析requirements.txt ，然后把结果赋给setup函数的install_requires参数，[参考](https://qastack.cn/programming/14399534/reference-requirements-txt-for-the-install-requires-kwarg-in-setuptools-setup-py)
+* 如果依赖包在自定义的私仓里，可以在`dependency_links`参数里列优先顺序，把私仓列放在第一位，如：
+```python
+INDEX_URLS = [
+    # your pypi server link
+    # "https://pypi.douban.com/simple/"
+]
+setup(
+    # 依赖模块安装源
+    dependency_links=INDEX_URLS
+)
+```
+
+### demo 源码
+[first_package](demo/pypi_server_demo)
+
+
 ### 参考
 * [pypiserver](https://pypi.org/project/pypiserver/)
 * [搭建pypiserver私有源](https://blog.csdn.net/qq_45957580/article/details/123185498)
 * [使用setuptools对Python进行打包分发](https://zhongneng.github.io/2019/01/19/python-setuptools/)
+* [Python打包时添加非代码文件的坑](https://zhuanlan.zhihu.com/p/24312755)
