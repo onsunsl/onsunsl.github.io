@@ -1,7 +1,7 @@
 ### Windows 编译Kivy
 
 #### 1.Why?
-kivy 是python 框架解释型语言为什么要编译，那是因为kivy 底层的核心框架是C实现的，准确的说是cython 实现的，那说明是cython呢？[参考](./leanning_cython.md)
+kivy 是python 框架解释型语言为什么要编译，那是因为kivy 底层的核心框架是C实现的，准确的说是cython 实现的，那说明是cython呢？[参考](demo/pyd_package/readme.md)
 
 在windows 下 pip install 安装Kivy的时候的时候都是默认下载whl 包安装的， whl 包其实是zip的压缩包，whl 包在打包时候会根据不同的python环境和
 位数在名称上标明，也就意味着whl 是环境强关联的不适用所以环境，最关键的是他内部的DLL 不带调试信息。所以在Kivy 应用崩溃的时候没法定位跟踪，需要自己

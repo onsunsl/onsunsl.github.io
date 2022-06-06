@@ -142,7 +142,7 @@ setup(
 ```
 
 ### demo 源码
-[first_package](demo/pypi_server_demo)
+[first_package](./setup.py)
 
 
 ### 参考

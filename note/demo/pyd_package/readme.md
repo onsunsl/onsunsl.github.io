@@ -92,14 +92,14 @@ print(fib.fib(1000))
 
 Python、纯C、C扩展、Cython 的性能对比
 
-![性能对比](static/images/c_cython_python_performance.png)
+![性能对比](../../static/images/c_cython_python_performance.png)
 
 
 ### python & cython & c extent 混合 PK
 
 分别使用Python、cython 和 c 拓展方式实现一个斐波那契数列，并打包输出wheel包, 顶层模块my_module, 代码目录结构如图：
 
-![](./static/images/pyd_package_code_tree.png)
+![](../../static/images/pyd_package_code_tree.png)
 
 #### python 版本
 
@@ -272,7 +272,7 @@ usage: setup.py [global_opts] cmd1 [cmd1_opts] [cmd2 [cmd2_opts] ...]
 
 ```
 运行`python setup.py bdist_wheel` 编译并打包，输出到dist目录下
-![打包输出](static/images/pyd_package_code_tree2.png)
+![打包输出](../../static/images/pyd_package_code_tree2.png)
 
 
 
