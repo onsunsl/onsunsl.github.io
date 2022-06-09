@@ -1,0 +1,12 @@
+#ifndef UNTITLED13_GLOBAL_H
+#define UNTITLED13_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(UNTITLED13_LIBRARY)
+#  define UNTITLED13SHARED_EXPORT Q_DECL_EXPORT
+#else
+#  define UNTITLED13SHARED_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // UNTITLED13_GLOBAL_H
