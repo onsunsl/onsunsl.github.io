@@ -20,7 +20,7 @@ class MyButton(Button):
 
 class MyApp(App):
     def build(self):
-        return MyButton(text="hello")
+        return Button(text="hello")
 
 
 asyncio.run(MyApp().async_run())

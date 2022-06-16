@@ -4,6 +4,9 @@ import time
 from ctypes import windll
 import ctypes.wintypes
 import traceback
+
+import atexit
+
 EXCEPTION_CONTINUE_SEARCH = 0
 
 
@@ -15,9 +18,10 @@ def crash_handler(c_exception):
 
 
 def python_fault_handler():
-    faulthandler.dump_traceback(file=sys.stderr)
-    faulthandler.enable(file=sys.stderr, )
-    print(faulthandler.is_enabled())
+    with open("1.dup", 'wb') as f:
+        faulthandler.dump_traceback(file=f)
+        faulthandler.enable(file=sys.stderr, )
+        print(faulthandler.is_enabled())
 
 
 def set_unhandled_exception_filter():
@@ -27,6 +31,12 @@ def set_unhandled_exception_filter():
     """
     windll.kernel32.SetErrorMode(3)
     windll.kernel32.SetUnhandledExceptionFilter(crash_handler)
+
+
+@atexit.register
+def exit_print():
+    print("hello")
+    traceback.print_exc()
 
 
 def call_dll():
@@ -43,5 +53,7 @@ def call_dll():
 
 
 if __name__ == '__main__':
+    python_fault_handler()
+    print(faulthandler.is_enabled())
     set_unhandled_exception_filter()
     call_dll()
