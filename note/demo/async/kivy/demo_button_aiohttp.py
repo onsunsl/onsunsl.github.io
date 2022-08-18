@@ -9,7 +9,7 @@ class MyButton(Button):
 
     async def http_get(self):
         s = aiohttp.ClientSession()
-        r = await s.get("https://www.baidu.com")
+        r = await s.get("https://www.example.com")
         self.text = self.text + f" {r.status}"
 
     def on_press(self):
@@ -20,7 +20,7 @@ class MyButton(Button):
 
 class MyApp(App):
     def build(self):
-        return Button(text="hello")
+        return MyButton(text="hello")
 
 
 asyncio.run(MyApp().async_run())

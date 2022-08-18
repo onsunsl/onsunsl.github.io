@@ -11,8 +11,8 @@ c_extensions = list()
 c_extensions.append(Extension("my_module.c_fib", ["my_module/c_fib.c"]))
 
 # python实现的模块（也可以转成c）
-# pyx_extensions.append(Extension('my_module', ['my_module/my_module.py']))
-# pyx_extensions.append(Extension('sub_folder.sub_module', ['my_module/sub_folder/sub_module.py']))
+pyx_extensions.append(Extension('my_module', ['my_module/my_module.py']))
+pyx_extensions.append(Extension('sub_folder.sub_module', ['my_module/sub_folder/sub_module.py']))
 
 extensions = c_extensions + cythonize(pyx_extensions, compiler_directives={'language_level': 2})
 
@@ -24,7 +24,7 @@ setup(
     author_email="Onsunsl@foxmail.com",
     url="https://www.jili.ink",
     ext_modules=extensions,
-    packages=["my_module", "my_module.sub_folder"],
+    # packages=["my_module", "my_module.sub_folder"],
 )
 
 
