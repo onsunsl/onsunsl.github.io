@@ -1,5 +1,5 @@
 import logging
-import functools
+from functools import wraps
 from threading import RLock
 
 
@@ -8,7 +8,7 @@ def singleton(cls):
     inc = dict()
     lock = RLock()
 
-    @functools.wraps(cls)
+    @wraps(cls)
     def _singleton(*args, **kwargs):
         if cls in inc:
             return inc[cls]
@@ -30,6 +30,16 @@ class MyClass(object):
         self.value = value
         print(f"第{value}次__init__")
 
+
+class MyClass2(object):
+
+    def __init__(self, value):
+        self.value = value
+        print(f"第{value}次__init__")
+
+
+print(type(MyClass))
+print(type(MyClass2))
 
 print(MyClass(1))
 print(MyClass(2))
