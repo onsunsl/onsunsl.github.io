@@ -34,7 +34,7 @@ class SingletonBase(object):
 
 class MyClass0:
     def __init__(self, *args, **kwargs):
-        print(args, kwargs)
+        print("MyClass0", args, kwargs)
 
 
 class MyClass(SingletonBase, MyClass0):
@@ -46,6 +46,7 @@ class MyClass(SingletonBase, MyClass0):
 
     def _on_create(self, *args, **kwargs):
         print("_on_create sub:", *args, **kwargs)
+        MyClass0.__init__(*args, **kwargs)
 
 
 
