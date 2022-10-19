@@ -10,6 +10,8 @@ env = os.environ
 env["TEST_IP"] = "10.111.87.79"
 env["TEST_MAC"] = "10.111.87.79"
 env["HANG_DUMP_TEST"] = "-1"
+env["PYTHONDEVMODE"] = "1"
+env["PYTHONFAULTHANDLER"] = "1"
 
 
 # 不等待子进程退出
