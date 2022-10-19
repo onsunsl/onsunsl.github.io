@@ -408,46 +408,53 @@ faulthandler_ignore_exception(DWORD code)
 }
 
 
+static int
+fault_handler_ignore_exception_log(DWORD code)
+{
+    // see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+    if(code == DBG_PRINTEXCEPTION_C)
+        return 1;
+    else
+        return 0;
+}
+
 
 
 static LONG WINAPI
 faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
 {
     time_t int_time;
-    char time_buf[24];
-    char pid_buf[48];
+    char buffer[256];
     struct tm today;
     DWORD pid;
 
-    memset(time_buf, 0, sizeof(time_buf));
-    memset(pid_buf, 0, sizeof(pid_buf));
+
+    memset(buffer, 0, sizeof(buffer));
     const int fd = fatal_error.fd;
     DWORD code = exc_info->ExceptionRecord->ExceptionCode;
     DWORD flags = exc_info->ExceptionRecord->ExceptionFlags;
+
+    if(0 != fault_handler_ignore_exception_log(code))
+    {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
 
     time((time_t *const) &int_time);
     if(_localtime64_s(&today, &int_time) != 0)
     {
         ;
     }
+    pid = GetCurrentProcessId();
+    strftime(buffer, 21, "%Y-%m-%d %T%n", &today);
+    sprintf(buffer+19, " pid(%u) 0x%08x\n", (unsigned int)pid, (unsigned int)code);
+    PUTS(fd, buffer);
 
     if (faulthandler_ignore_exception(code)) {
         /* ignore the exception: call the next exception handler */
-        /*
-        sprintf(pid_buf, "Ignore Windows fatal exception pid(%u): ", (unsigned int)pid);
-        PUTS(fd, pid_buf);
-        PUTS(fd, "Ignore code 0x");
-        _Py_DumpHexadecimal(fd, code, 8);
-        */
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    PUTS(fd, "------------------------------\n");
-    strftime(time_buf, 21, "%Y-%m-%d %T%n", &today);
-    PUTS(fd, time_buf);
-    pid = GetCurrentProcessId();
-    sprintf(pid_buf, "Windows fatal exception pid(%u): ", (unsigned int)pid);
-    PUTS(fd, pid_buf);
+    PUTS(fd, "Windows fatal exception: ");
     switch (code)
     {
         /* only format most common errors */
@@ -459,8 +466,7 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
         case EXCEPTION_IN_PAGE_ERROR: PUTS(fd, "page error"); break;
         case EXCEPTION_STACK_OVERFLOW: PUTS(fd, "stack overflow"); break;
         default:
-            PUTS(fd, "code 0x");
-            _Py_DumpHexadecimal(fd, code, 8);
+            PUTS(fd, "unknown");
     }
     PUTS(fd, "\n\n");
 
@@ -479,7 +485,7 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
     faulthandler_dump_traceback(fd, fatal_error.all_threads,
                                 fatal_error.interp);
 
-    PUTS(fd, "\n\n\n");
+    PUTS(fd, "-------------------------\n\n\n");
     /* call the next exception handler */
     return EXCEPTION_CONTINUE_SEARCH;
 }
