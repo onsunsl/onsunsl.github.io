@@ -346,6 +346,26 @@ faulthandler_fatal_error(int signum)
     /* restore the previous handler */
     faulthandler_disable_fatal_handler(handler);
 
+    time_t int_time;
+    char time_buf[24];
+    char pid_buf[48];
+    struct tm today;
+    DWORD pid;
+
+    time((time_t *const) &int_time);
+    if(_localtime64_s(&today, &int_time) != 0)
+    {
+        ;
+    }
+    strftime(time_buf, 21, "%Y-%m-%d %T%n", &today);
+    PUTS(fd, time_buf);
+
+#ifdef MS_WINDOWS
+    pid = GetCurrentProcessId();
+    sprintf(pid_buf, "Fatal pid:%d\n", (unsigned int)pid);
+    PUTS(fd, pid_buf);
+#endif
+
     PUTS(fd, "Fatal Python error: ");
     PUTS(fd, handler->name);
     PUTS(fd, "\n\n");
@@ -353,6 +373,7 @@ faulthandler_fatal_error(int signum)
     faulthandler_dump_traceback(fd, fatal_error.all_threads,
                                 fatal_error.interp);
 
+    PUTS(fd, "\n\n");
     errno = save_errno;
 #ifdef MS_WINDOWS
     if (signum == SIGSEGV) {
@@ -394,26 +415,29 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
     char time_buf[24];
     char pid_buf[48];
     struct tm today;
-    errno_t err;
     DWORD pid;
 
     const int fd = fatal_error.fd;
     DWORD code = exc_info->ExceptionRecord->ExceptionCode;
     DWORD flags = exc_info->ExceptionRecord->ExceptionFlags;
 
-    if (faulthandler_ignore_exception(code)) {
-        /* ignore the exception: call the next exception handler */
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
     time((time_t *const) &int_time);
     if(_localtime64_s(&today, &int_time) != 0)
     {
-       ;
+        ;
     }
     pid = GetCurrentProcessId();
     strftime(time_buf, 21, "%Y-%m-%d %T%n", &today);
     PUTS(fd, time_buf);
+
+    if (faulthandler_ignore_exception(code)) {
+        /* ignore the exception: call the next exception handler */
+        sprintf(pid_buf, "Ignore Windows fatal exception pid(%u): ", (unsigned int)pid);
+        PUTS(fd, pid_buf);
+        PUTS(fd, "Ignore code 0x");
+        _Py_DumpHexadecimal(fd, code, 8);
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
 
     sprintf(pid_buf, "Windows fatal exception pid(%u): ", (unsigned int)pid);
     PUTS(fd, pid_buf);
@@ -448,6 +472,7 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
     faulthandler_dump_traceback(fd, fatal_error.all_threads,
                                 fatal_error.interp);
 
+    PUTS(fd, "\n\n");
     /* call the next exception handler */
     return EXCEPTION_CONTINUE_SEARCH;
 }
