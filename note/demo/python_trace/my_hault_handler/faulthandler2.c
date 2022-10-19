@@ -9,6 +9,7 @@
 #endif
 #ifdef MS_WINDOWS
 #  include <windows.h>
+#  include <time.h>
 #endif
 #ifdef HAVE_SYS_RESOURCE_H
 #  include <sys/resource.h>
@@ -55,7 +56,6 @@ static struct {
     int fd;
     int all_threads;
     PyInterpreterState *interp;
-    PyObject *callback;
 #ifdef MS_WINDOWS
     void *exc_handler;
 #endif
@@ -384,58 +384,73 @@ faulthandler_ignore_exception(DWORD code)
     return 0;
 }
 
+
+
+
 static LONG WINAPI
 faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
 {
+    time_t int_time;
+    char time_buf[24];
+    char pid_buf[48];
+    struct tm today;
+    errno_t err;
+    DWORD pid;
+
     const int fd = fatal_error.fd;
     DWORD code = exc_info->ExceptionRecord->ExceptionCode;
     DWORD flags = exc_info->ExceptionRecord->ExceptionFlags;
-    char buffer[48];
 
     if (faulthandler_ignore_exception(code)) {
         /* ignore the exception: call the next exception handler */
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-
-    if (!PyCallable_Check(fatal_error.callback)) {
-        PyErr_SetString(PyExc_TypeError, "`callback` parameter must be callable");
-        return EXCEPTION_CONTINUE_SEARCH;
+    time((time_t *const) &int_time);
+    if(_localtime64_s(&today, &int_time) != 0)
+    {
+       ;
     }
+    pid = GetCurrentProcessId();
+    strftime(time_buf, 21, "%Y-%m-%d %T%n", &today);
+    PUTS(fd, time_buf);
 
-    PyObject * arglist;
-    sprintf(buffer, "0x%08x", (unsigned int)code);
+    sprintf(pid_buf, "Windows fatal exception pid(%u): ", (unsigned int)pid);
+    PUTS(fd, pid_buf);
     switch (code)
     {
         /* only format most common errors */
-        case EXCEPTION_ACCESS_VIOLATION: arglist = Py_BuildValue("(ss)", "access violation", buffer); break;
-        case EXCEPTION_FLT_DIVIDE_BY_ZERO: arglist = Py_BuildValue("(ss)",  "float divide by zero", buffer); break;
-        case EXCEPTION_FLT_OVERFLOW: arglist = Py_BuildValue("(ss)",  "float overflow", buffer); break;
-        case EXCEPTION_INT_DIVIDE_BY_ZERO: arglist = Py_BuildValue("(ss)",  "int divide by zero", buffer); break;
-        case EXCEPTION_INT_OVERFLOW: arglist = Py_BuildValue("(ss)",  "integer overflow", buffer); break;
-        case EXCEPTION_IN_PAGE_ERROR: arglist = Py_BuildValue("(ss)",  "page error", buffer); break;
-        case EXCEPTION_STACK_OVERFLOW: arglist = Py_BuildValue("(ss)",  "stack overflow", buffer); break;
+        case EXCEPTION_ACCESS_VIOLATION: PUTS(fd, "access violation"); break;
+        case EXCEPTION_FLT_DIVIDE_BY_ZERO: PUTS(fd, "float divide by zero"); break;
+        case EXCEPTION_FLT_OVERFLOW: PUTS(fd, "float overflow"); break;
+        case EXCEPTION_INT_DIVIDE_BY_ZERO: PUTS(fd, "int divide by zero"); break;
+        case EXCEPTION_INT_OVERFLOW: PUTS(fd, "integer overflow"); break;
+        case EXCEPTION_IN_PAGE_ERROR: PUTS(fd, "page error"); break;
+        case EXCEPTION_STACK_OVERFLOW: PUTS(fd, "stack overflow"); break;
         default:
-            arglist = Py_BuildValue("(ss)",  "unknown code", buffer);
+            PUTS(fd, "code 0x");
+            _Py_DumpHexadecimal(fd, code, 8);
+    }
+    PUTS(fd, "\n\n");
+
+    if (code == EXCEPTION_ACCESS_VIOLATION) {
+        /* disable signal handler for SIGSEGV */
+        size_t i;
+        for (i=0; i < faulthandler_nsignals; i++) {
+            fault_handler_t *handler = &faulthandler_handlers[i];
+            if (handler->signum == SIGSEGV) {
+                faulthandler_disable_fatal_handler(handler);
+                break;
+            }
+        }
     }
 
-    // 回调
-    PyObject* result = PyObject_CallObject(fatal_error.callback, arglist);
-    if(NULL != result)
-    {
-        printf("callback done\n");
-        Py_DECREF(result);
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "call `callback` error");
-    }
-    Py_DECREF(arglist);
+    faulthandler_dump_traceback(fd, fatal_error.all_threads,
+                                fatal_error.interp);
 
     /* call the next exception handler */
     return EXCEPTION_CONTINUE_SEARCH;
 }
-
 #endif
 
 /* Install the handler for fatal signals, faulthandler_fatal_error(). */
@@ -496,32 +511,29 @@ faulthandler_enable(void)
 static PyObject*
 faulthandler_py_enable(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *kwlist[] = {"all_threads", "callback", NULL};
-    PyObject *callback = NULL;
+    static char *kwlist[] = {"file", "all_threads", NULL};
     PyObject *file = NULL;
     int all_threads = 1;
     int fd;
     PyThreadState *tstate;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|iO:enable", kwlist, &file, &all_threads, &callback)){
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs,
+                                     "|Oi:enable", kwlist, &file, &all_threads))
         return NULL;
-    }
 
-    if (!PyCallable_Check(callback)) {
-        PyErr_SetString(PyExc_TypeError, "`callback` parameter must be callable");
+    fd = faulthandler_get_fileno(&file);
+    if (fd < 0)
         return NULL;
-    }
 
     tstate = get_thread_state();
     if (tstate == NULL)
         return NULL;
 
-    Py_XINCREF(callback);                  /* Add a reference to new callback */
-    Py_XDECREF(fatal_error.callback);  /* Dispose of previous callback */
-
+    Py_XINCREF(file);
+    Py_XSETREF(fatal_error.file, file);
+    fatal_error.fd = fd;
     fatal_error.all_threads = all_threads;
     fatal_error.interp = tstate->interp;
-    fatal_error.callback = callback;
 
     if (faulthandler_enable() < 0) {
         return NULL;
