@@ -352,6 +352,8 @@ faulthandler_fatal_error(int signum)
     struct tm today;
     DWORD pid;
 
+    memset(time_buf, 0, sizeof(time_buf));
+    memset(pid_buf, 0, sizeof(pid_buf));
     time((time_t *const) &int_time);
     if(_localtime64_s(&today, &int_time) != 0)
     {
@@ -417,6 +419,8 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
     struct tm today;
     DWORD pid;
 
+    memset(time_buf, 0, sizeof(time_buf));
+    memset(pid_buf, 0, sizeof(pid_buf));
     const int fd = fatal_error.fd;
     DWORD code = exc_info->ExceptionRecord->ExceptionCode;
     DWORD flags = exc_info->ExceptionRecord->ExceptionFlags;
@@ -426,19 +430,22 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
     {
         ;
     }
-    pid = GetCurrentProcessId();
-    strftime(time_buf, 21, "%Y-%m-%d %T%n", &today);
-    PUTS(fd, time_buf);
 
     if (faulthandler_ignore_exception(code)) {
         /* ignore the exception: call the next exception handler */
+        /*
         sprintf(pid_buf, "Ignore Windows fatal exception pid(%u): ", (unsigned int)pid);
         PUTS(fd, pid_buf);
         PUTS(fd, "Ignore code 0x");
         _Py_DumpHexadecimal(fd, code, 8);
+        */
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
+    PUTS(fd, "------------------------------\n");
+    strftime(time_buf, 21, "%Y-%m-%d %T%n", &today);
+    PUTS(fd, time_buf);
+    pid = GetCurrentProcessId();
     sprintf(pid_buf, "Windows fatal exception pid(%u): ", (unsigned int)pid);
     PUTS(fd, pid_buf);
     switch (code)
@@ -472,7 +479,7 @@ faulthandler_exc_handler(struct _EXCEPTION_POINTERS *exc_info)
     faulthandler_dump_traceback(fd, fatal_error.all_threads,
                                 fatal_error.interp);
 
-    PUTS(fd, "\n\n");
+    PUTS(fd, "\n\n\n");
     /* call the next exception handler */
     return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -542,17 +549,16 @@ faulthandler_py_enable(PyObject *self, PyObject *args, PyObject *kwargs)
     int fd;
     PyThreadState *tstate;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     "|Oi:enable", kwlist, &file, &all_threads))
-        return NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Oi:enable", kwlist, &file, &all_threads))
+        return PyBool_FromLong(0);
 
     fd = faulthandler_get_fileno(&file);
     if (fd < 0)
-        return NULL;
+        return PyBool_FromLong(0);
 
     tstate = get_thread_state();
     if (tstate == NULL)
-        return NULL;
+        return PyBool_FromLong(0);
 
     Py_XINCREF(file);
     Py_XSETREF(fatal_error.file, file);
@@ -561,10 +567,10 @@ faulthandler_py_enable(PyObject *self, PyObject *args, PyObject *kwargs)
     fatal_error.interp = tstate->interp;
 
     if (faulthandler_enable() < 0) {
-        return NULL;
+        return PyBool_FromLong(0);
     }
 
-    Py_RETURN_NONE;
+    return PyBool_FromLong(1);
 }
 
 static void
