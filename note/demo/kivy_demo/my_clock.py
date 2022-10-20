@@ -1,3 +1,4 @@
+import re
 import enum
 import time
 import logging
@@ -5,11 +6,10 @@ import threading
 from typing import Dict, Any
 
 from kivy.clock import Clock
-from kivy.app import App
 
 
 class TaskState(enum.IntEnum):
-    """任务状体"""
+    """任务状态"""
 
     CANCEL = 0
     ONCE = 1
@@ -18,6 +18,9 @@ class TaskState(enum.IntEnum):
 
 class Task(object):
     """任务"""
+
+    name: str = ""
+    """名称"""
 
     callback: callable = None
     """任务回调"""
@@ -34,125 +37,191 @@ class Task(object):
     create_time: float = 0
     """创建时间"""
 
-    def __init__(self, callback: callable, timeout: float, state: TaskState, log: callable = None):
+    def __init__(self, name: str, callback: callable, timeout: float, state: TaskState, log: callable = None):
+        self.name = name
         self.state = state
         self.timeout = timeout
         self.callback = callback
         self.create_time = time.time()
         if callable(log):
             self.log = log
+        else:
+            self.log = lambda *args: None
+        self.log(f"创建{self}")
+
+    def __str__(self):
+        return f"{self.name} {self.state.name} {self.timeout}S"
 
     @property
     def is_timeout(self) -> bool:
         return time.time() > (self.create_time + self.timeout)
 
+    def cancel(self):
+        self.log(f"取消{self}")
+        self.state = TaskState.CANCEL
+
 
 class PyKivyClock(object):
     """基于kivy 的UI主线程定时任务调度的python实现"""
 
-    _tasks: Dict[Any, Task] = dict()
-    _r_lock = threading.RLock()
+    _tasks_running: Dict[Any, Task] = dict()
+    """运行中任务列表"""
 
-    def __init__(self):
-        Clock.tick = self._tick
+    _tasks_new: Dict[Any, Task] = dict()
+    """新创建任务列表"""
+
+    _r_lock = threading.RLock()
+    """列表锁"""
+
+    _is_running = False
+    """是否在运行"""
+
+    _enable: bool = False
+    """PyKivyClock开关"""
+
+    _instance: "PyKivyClock" = None
+    """全局唯一实例"""
+
+    _logger: logging.Logger = None
+    """本模块logger"""
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            with cls._r_lock:
+                if not cls._instance:
+                    cls._instance = object.__new__(cls)
+                    cls._logger = logging.getLogger("PyKivyClock")
+                    cls._logger.setLevel("INFO")
+        return cls._instance
 
     def _tick(self):
-        Clock.pre_idle()
-        ts = Clock.time()
-        Clock.post_idle(ts, Clock.idle())
         try:
-            self._run_task()
+            Clock.pre_idle()
+            ts = Clock.time()
+            Clock.post_idle(ts, Clock.idle())
+            self._enable and self._run_task()
         except Exception as err:
             logging.error(err, exc_info=True)
 
+    async def _async_tick(self):
+        Clock.pre_idle()
+        ts = Clock.time()
+        current = await Clock.async_idle()
+        Clock.post_idle(ts, current)
+        self._enable and self._run_task()
+
     def _run_task(self):
-        remove_list = list()
-        logging.debug("开始调度")
+        self._logger.debug(f"开始调度：{len(self._tasks_running)}")
         self._r_lock.acquire()
-        for name, task in self._tasks.items():
+        self._is_running = True
+        cancel_list = list()
+        for name, task in self._tasks_running.items():
             if not task.is_timeout:
                 continue
-            begin = time.time()
+
             try:
-                task.log(f"{name}开始")
-                task.state and task.callback()
+                if task.state != TaskState.CANCEL:
+                    begin = time.time()
+                    task.log(f"{name}开始")
+                    if TaskState.CANCEL == task.callback():
+                        task.state = TaskState.CANCEL
+                    task.log(f"{name}耗时{time.time()-begin:.2f}S")
+
                 if task.state == TaskState.INTERVAL:
                     task.create_time = time.time()
                 else:
-                    remove_list.append(name)
-                task.log(f"{name}耗时{time.time()-begin:.2f}S")
+                    cancel_list.append(name)
             except Exception as err:
-                logging.error(f"运行异常:{name}, {err}", exc_info=True)
+                self._logger.error(f"运行异常:{name}, {err}", exc_info=True)
 
-        for name in remove_list:
-            self._tasks.pop(name)
-        logging.debug("结束调度")
+        # 调度同时UI操作增加任务,追加到running列表里
+        newest = dict(filter(lambda i: i[1].state, self._tasks_new.items()))
+        if newest:
+            self._tasks_running.update(newest)
+            self._logger.info(f"追加:{len(newest)}")
+        self._tasks_new.clear()
+
+        # 从running删除取消的
+        for name in cancel_list:
+            self._tasks_running.pop(name)
+        self._logger.debug("结束调度")
+        self._is_running = False
         self._r_lock.release()
 
-    def _new_task(self, name: str, callback: callable, timeout, state, log):
+    @staticmethod
+    def _get_name(callback: callable, name: str):
+        t = int(time.time() * 1000)
+        try:
+            if name:
+                return f"{name}-{t}"
+            if hasattr(callback, "__name__"):
+                return callback.__name__
+            name = str(callback)
+            res = ["(?<=bound method )(.+?)(?= of )", ]
+            for r in res:
+                result = re.findall(r, name)
+                if result:
+                    return f"{result[0]}-{t}"
+            return f"{name}-{t}"
+        except Exception as err:
+            PyKivyClock._logger.error(err, exc_info=True)
+            return f"Unknown-{t}"
+
+    def _new_task(self, name: str, callback: callable, timeout, state, log) -> Task:
+        """创建任务
+            -多线程下通过锁互斥访问任务
+            -主线程会同时响应kivy touch和clock事件，需要_is_running状态同步任务
+        """
+        self._logger.info("开始创建任务")
         self._r_lock.acquire()
-        t = Task(callback, timeout, state, log)
-        self._tasks[name] = t
+        t = Task(name, callback, timeout, state, log)
+        if self._is_running:
+            self._tasks_new[name] = t
+        else:
+            self._tasks_running[name] = t
         self._r_lock.release()
+        self._logger.info(f"结束任务创建:{t}")
         return t
 
-    def schedule_once(self, callback: callable, timeout: float = 0.0, name: str = "", log: callable = None):
-        name = name or str(callback)
-        logging.info(f"{name}添加单次任务, {timeout}S后执行")
-        return self._new_task(name, callback, timeout, TaskState.ONCE, log)
+    @property
+    def enable(self) -> bool:
+        return self._enable
 
-    def schedule_interval(self, callback: callable, timeout: float = 0.0, name: str = "", log: callable = None):
-        name = name or str(callback)
-        logging.info(f"{name}添加循环任务, {timeout}S后执行")
-        return self._new_task(name, callback, timeout, TaskState.INTERVAL, log)
+    @enable.setter
+    def enable(self, value: bool):
+        if isinstance(value, bool):
+            self._enable = value
+            self._logger.warning(f"自定义clock开关：{self._enable}")
+        else:
+            self._logger.error("enable必须是bool类型")
 
-    def cancel(self, callback: callable, name: str = "") -> bool:
-        name = name or str(callback)
-        if name not in self._tasks:
-            return False
-        logging.info(f"{name}取消任务")
-        self._r_lock.acquire()
-        self._tasks[name].state = TaskState.CANCEL
-        self._r_lock.release()
-        return True
+        if self._enable:
+            Clock.tick = self._tick
+            Clock.async_tick = self._async_tick
+
+    @property
+    def log_level(self) -> int:
+        return self._logger.level
+
+    @log_level.setter
+    def log_level(self, value):
+        if isinstance(value, (str, int)):
+            self._logger.setLevel(value)
+        else:
+            self._logger.error("log_level必须是str或int类型")
+
+    def schedule_once(self, callback: callable, timeout: float = 0.0, name: str = "", log: callable = None) -> Task:
+        if self._enable:
+            name = self._get_name(callback, name)
+            return self._new_task(name, callback, timeout, TaskState.ONCE, log)
+        else:
+            return Clock.schedule_once(callback, timeout)
+
+    def schedule_interval(self, callback: callable, timeout: float = 0.0, name: str = "", log: callable = None) -> Task:
+        if self._enable:
+            name = self._get_name(callback, name)
+            return self._new_task(name, callback, timeout, TaskState.INTERVAL, log)
+        else:
+            return Clock.schedule_interval(callback, timeout)
 
 
-PyKivyClockInc = PyKivyClock()
-
-
-if __name__ == '__main__':
-
-    def fun1(*args):
-        print("schedule interval")
-
-    def fun2(*args):
-        print("schedule_once")
-
-    PyKivyClockInc.schedule_interval(fun1, timeout=3, log=logging.info)
-    PyKivyClockInc.schedule_once(fun2, 2)
-    PyKivyClockInc.schedule_once(lambda *a: PyKivyClockInc.cancel(fun1), 10)
-
-    from threading import Thread
-    import random
-
-    def cancel(*args):
-        while True:
-            PyKivyClockInc.cancel(fun1)
-            time.sleep(random.random())
-            PyKivyClockInc.cancel(fun2)
-            time.sleep(random.random())
-
-    def schedule_interval(*args):
-        while True:
-            PyKivyClockInc.schedule_interval(fun1, random.randint(0, 10), log=logging.info)
-            time.sleep(random.random())
-
-    def schedule_once(*args):
-        while True:
-            PyKivyClockInc.schedule_once(fun2, random.randint(0, 10), log=logging.info)
-            time.sleep(random.random())
-
-    Thread(target=schedule_interval).start()
-    Thread(target=schedule_once).start()
-    Thread(target=cancel).start()
-    App().run()
