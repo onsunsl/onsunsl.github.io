@@ -1,4 +1,7 @@
-"""在TextInput输入焦点有效时候，点击其他控件时候输入框不丢焦点"""
+"""在TextInput输入焦点有效时候，点击其他控件时候输入框不丢焦点
+这个会频繁添加touch 到ignored_touch 该方案不好，
+设置TextInput 的unfocus_on_touch = False 即可
+"""
 
 from kivy import app
 from kivy.uix.behaviors import FocusBehavior
