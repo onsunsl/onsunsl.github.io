@@ -120,7 +120,7 @@ your main.py)::
 
 '''
 
-__all__ = ('VKeyboard', )
+__all__ = ('VKeyboard',)
 
 import logging
 
@@ -141,7 +141,6 @@ from io import open
 from os.path import join, splitext, basename
 from os import listdir
 from json import loads
-
 
 default_layout_path = join(kivy_data_dir, 'keyboards')
 
@@ -908,12 +907,36 @@ if __name__ == '__main__':
     from kivy.uix.boxlayout import BoxLayout
     from kivy.uix.textinput import TextInput
     from kivy.core.window import Window, Keyboard
-    vk = VKeyboard(layout='azerty')
+
+    vk = VKeyboard(layout='en_US')
+
+
+    def keycode_to_string(value):
+        keycodes = list(Keyboard.keycodes.values())
+        if value in keycodes:
+            return list(Keyboard.keycodes.keys())[keycodes.index(value)]
+        return ''
+
 
     # 把虚拟键盘的事件转发到window 上
     vk.bind(on_textinput=lambda inc, ch: Window.dispatch('on_textinput', ch))
-    vk.bind(on_key_down=lambda inc, ch: Window.dispatch('on_key_down', ch))
-    vk.bind(on_key_up=lambda inc, ch: Window.dispatch('on_key_up', ch))
+
+
+    def vk_down(inc, key, internal, modifiers, *args):
+        print(f"{inc}, {key}, {internal}, {modifiers}")
+        key_code = keycode_to_string(value=key)
+        print(key_code)
+        # Window.dispatch('on_key_down', keycode, scan_code, text,
+        #                 [])
+
+
+    def vk_up(inc, keycode, internal, modifiers, *args):
+        scancode = 0
+        Window.dispatch('on_key_up', internal, scancode)
+
+
+    vk.bind(on_key_down=vk_down)
+    vk.bind(on_key_up=vk_up)
     box = BoxLayout()
     box.add_widget(TextInput())
     box.add_widget(vk)
