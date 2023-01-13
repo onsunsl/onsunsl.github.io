@@ -222,13 +222,18 @@ def parse_headers(fp, _class=HTTPMessage):
         headers.append(line)
         if len(headers) > _MAXHEADERS:
             raise HTTPException("got more than %d headers" % _MAXHEADERS)
+
+        # 结束行
         if line in (b'\r\n', b'\n', b''):
             break
+
     hstring = b''.join(headers).decode('iso-8859-1')
-    return email.parser.Parser(_class=_class).parsestr(hstring)
+    r = email.parser.Parser(_class=_class).parsestr(hstring)
+    return r
 
 
 class HTTPResponse(io.BufferedIOBase):
+    """根据构造参数入参把socket连接对象转成文件流形式"""
 
     # See RFC 2616 sec 19.6 and RFC 1945 sec 6 for details.
 
@@ -268,6 +273,10 @@ class HTTPResponse(io.BufferedIOBase):
         self.will_close = _UNKNOWN  # conn will close at end of response
 
     def _read_status(self):
+        """
+        从socket读取首个状态行
+        :return: http版本str, 状态码int, 状态消息str
+        """
         line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
         if len(line) > _MAXLINE:
             raise LineTooLong("status line")
@@ -279,6 +288,7 @@ class HTTPResponse(io.BufferedIOBase):
             raise RemoteDisconnected("Remote end closed connection without"
                                      " response")
         try:
+            # HTTP/1.1 200 OK\r\n
             version, status, reason = line.split(None, 2)
         except ValueError:
             try:
@@ -301,13 +311,19 @@ class HTTPResponse(io.BufferedIOBase):
         return version, status, reason
 
     def begin(self):
+        """接收HTTP报文头（状态码和解析Header）"""
+
         if self.headers is not None:
             # we've already started reading the response
             return
 
         # read until we get a non-100 response
         while True:
+
+            # 接收状态码
             version, status, reason = self._read_status()
+
+            # http.CONTINUE
             if status != CONTINUE:
                 break
             # skip the header from the 100 response
@@ -331,6 +347,7 @@ class HTTPResponse(io.BufferedIOBase):
         else:
             raise UnknownProtocol(version)
 
+        # 解析Header
         self.headers = self.msg = parse_headers(self.fp)
 
         if self.debuglevel > 0:
@@ -338,6 +355,7 @@ class HTTPResponse(io.BufferedIOBase):
                 print("header:", hdr + ":", val)
 
         # are we using the chunked-style of transfer encoding?
+        # 检查是否开启了块传输方式
         tr_enc = self.headers.get("transfer-encoding")
         if tr_enc and tr_enc.lower() == "chunked":
             self.chunked = True
@@ -346,6 +364,7 @@ class HTTPResponse(io.BufferedIOBase):
             self.chunked = False
 
         # will the connection close at the end of the response?
+        # 检测是否要关闭连接
         self.will_close = self._check_close()
 
         # do we have a Content-Length?
@@ -377,7 +396,10 @@ class HTTPResponse(io.BufferedIOBase):
                 self.length is None):
             self.will_close = True
 
-    def _check_close(self):
+    def _check_close(self) -> bool:
+        """根据header选项值返回是否要关闭连接"""
+
+        # connection 选项
         conn = self.headers.get("connection")
         if self.version == 11:
             # An HTTP/1.1 proxy is assumed to stay open unless
@@ -390,11 +412,13 @@ class HTTPResponse(io.BufferedIOBase):
         # connections, using rules different than HTTP/1.1.
 
         # For older HTTP, Keep-Alive indicates persistent connection.
+        # keep-alive 选项
         if self.headers.get("keep-alive"):
             return False
 
         # At least Akamai returns a "Connection: Keep-Alive" header,
         # which was supposed to be sent by the client.
+        # keep-alive 在 connection
         if conn and "keep-alive" in conn.lower():
             return False
 
@@ -445,6 +469,7 @@ class HTTPResponse(io.BufferedIOBase):
         return self.fp is None
 
     def read(self, amt=None):
+        """读取自定长度的数据"""
         if self.fp is None:
             return b""
 
@@ -452,18 +477,23 @@ class HTTPResponse(io.BufferedIOBase):
             self._close_conn()
             return b""
 
+        # 按长度读取： 先按长度开辟内存， 再读到内存， 最后转成memoryview(类似指针，支持遍历但不会产生内存拷贝)
         if amt is not None:
             # Amount is given, implement using readinto
             b = bytearray(amt)
             n = self.readinto(b)
             return memoryview(b)[:n].tobytes()
+
+        # 读取全部
         else:
             # Amount is not given (unbounded read) so we must check self.length
             # and self.chunked
 
+            # 按块传输方式
             if self.chunked:
                 return self._readall_chunked()
 
+            # 普通传输方式
             if self.length is None:
                 s = self.fp.read()
             else:
@@ -477,7 +507,9 @@ class HTTPResponse(io.BufferedIOBase):
             return s
 
     def readinto(self, b):
-        """Read up to len(b) bytes into bytearray b and return the number
+        """
+        从socket网络流读取b这个buf长度的数据
+        Read up to len(b) bytes into bytearray b and return the number
         of bytes read.
         """
 
@@ -770,7 +802,9 @@ class HTTPResponse(io.BufferedIOBase):
 
 
 class HTTPConnection:
-    """HTTP客户端连接类"""
+    """HTTP客户端连接类
+    实现socket的连接和收发管理，封装http的协议
+    """
 
     _http_vsn = 11
     _http_vsn_str = 'HTTP/1.1'
@@ -934,7 +968,14 @@ class HTTPConnection:
                 print('header:', line.decode())
 
     def connect(self):
-        """Connect to the host and port specified in __init__."""
+        """
+        根据初始化主机&端口创建socket连接
+        内部使用socket.create_connection完成以下步骤：
+            - 创建socket对象
+            - 对象超时设置settimeout
+            - 连接
+        Connect to the host and port specified in __init__.
+        """
         self.sock = self._create_connection(
             (self.host, self.port), self.timeout, self.source_address)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -943,7 +984,10 @@ class HTTPConnection:
             self._tunnel()
 
     def close(self):
-        """Close the connection to the HTTP server."""
+        """
+        Close the connection to the HTTP server.
+        关闭socket连接
+        """
         self.__state = _CS_IDLE
         try:
             sock = self.sock
@@ -957,9 +1001,9 @@ class HTTPConnection:
                 response.close()
 
     def send(self, data):
-        """Send `data' to the server.
-        ``data`` can be a string object, a bytes object, an array object, a
-        file-like object that supports a .read() method, or an iterable object.
+        """
+        发送数据到socket
+        :param data: 可以是str, byte, list, 可迭代对象，类文件流
         """
 
         if self.sock is None:
@@ -970,6 +1014,8 @@ class HTTPConnection:
 
         if self.debuglevel > 0:
             print("send:", repr(data))
+
+        # 类文件流的可读对象发送方式
         if hasattr(data, "read"):
             if self.debuglevel > 0:
                 print("sendIng a read()able")
@@ -984,6 +1030,8 @@ class HTTPConnection:
                     datablock = datablock.encode("iso-8859-1")
                 self.sock.sendall(datablock)
             return
+
+        # 他类型发送方式
         try:
             self.sock.sendall(data)
         except TypeError:
@@ -995,7 +1043,9 @@ class HTTPConnection:
                                 "or an iterable, got %r" % type(data))
 
     def _output(self, s):
-        """Add a line of output to the current request buffer.
+        """
+        添加信息到输出buf
+        Add a line of output to the current request buffer.
 
         Assumes that the line does *not* end with \\r\\n.
         """
@@ -1016,16 +1066,21 @@ class HTTPConnection:
             yield datablock
 
     def _send_output(self, message_body=None, encode_chunked=False):
-        """Send the currently buffered request and clear the buffer.
+        """
+        从buffer发送请求数据到socket并清除buffer
+        Send the currently buffered request and clear the buffer.
 
         Appends an extra \\r\\n to the buffer.
         A message_body may be specified, to be appended to the request.
         """
+
+        # url 请求
         self._buffer.extend((b"", b""))
         msg = b"\r\n".join(self._buffer)
         del self._buffer[:]
         self.send(msg)
 
+        # 发送body
         if message_body is not None:
 
             # create a consistent interface to message_body
@@ -1071,13 +1126,13 @@ class HTTPConnection:
 
     def putrequest(self, method, url, skip_host=False,
                    skip_accept_encoding=False):
-        """Send a request to the server.
-
-        `method' specifies an HTTP request method, e.g. 'GET'.
-        `url' specifies the object being requested, e.g. '/index.html'.
-        `skip_host' if True does not add automatically a 'Host:' header
-        `skip_accept_encoding' if True does not add automatically an
-           'Accept-Encoding:' header
+        """
+        填充请求头到buf
+        :param method:               specifies an HTTP request method, e.g. 'GET'.
+        :param url:                  specifies the object being requested, e.g. '/index.html'.
+        :param skip_host:            if True does not add automatically a 'Host:' header
+        :param skip_accept_encoding: if True does not add automatically an 'Accept-Encoding:' header
+        :return:
         """
 
         # if a prior response has been completed, then forget about it.
@@ -1115,10 +1170,12 @@ class HTTPConnection:
         url = url or '/'
         self._validate_path(url)
 
+        # 请求格式： 方法 + 路径 + http版本， 如： GET / HTTP/1.1
         request = '%s %s %s' % (method, url, self._http_vsn_str)
-
+        # 填充到buf
         self._output(self._encode_request(request))
 
+        # http/1.1 格式
         if self._http_vsn == 11:
             # Issue some standard headers for better HTTP/1.1 compliance
 
@@ -1227,9 +1284,13 @@ class HTTPConnection:
                              f"(found at least {match.group()!r})")
 
     def putheader(self, header, *values):
-        """Send a request header line to the server.
-
+        """
+        向发送缓冲去里加入http头
+        Send a request header line to the server.
         For example: h.putheader('Accept', 'text/html')
+        :param header:
+        :param values:
+        :return:
         """
         if self.__state != _CS_REQ_STARTED:
             raise CannotSendHeader()
@@ -1255,7 +1316,9 @@ class HTTPConnection:
         self._output(header)
 
     def endheaders(self, message_body=None, *, encode_chunked=False):
-        """Indicate that the last header line has been sent to the server.
+        """
+        填充完buf的请求和头后发送完整请求
+        Indicate that the last header line has been sent to the server.
 
         This method sends the request to the server.  The optional message_body
         argument can be used to pass a message body associated with the
@@ -1292,6 +1355,7 @@ class HTTPConnection:
         if 'accept-encoding' in header_names:
             skips['skip_accept_encoding'] = 1
 
+        # 填充请求到buf
         self.putrequest(method, url, **skips)
 
         # chunked encoding will happen if HTTP/1.1 is used and either
@@ -1321,8 +1385,11 @@ class HTTPConnection:
         else:
             encode_chunked = False
 
+        # 填充header到 buf 里
         for hdr, value in headers.items():
             self.putheader(hdr, value)
+
+        # body 编码
         if isinstance(body, str):
             # RFC 2616 Section 3.7.1 says that text default has a
             # default charset of iso-8859-1.
@@ -1330,7 +1397,9 @@ class HTTPConnection:
         self.endheaders(body, encode_chunked=encode_chunked)
 
     def getresponse(self):
-        """Get the response from the server.
+        """
+        在request发出后,
+        Get the response from the server.
 
         If the HTTPConnection is in the correct state, returns an
         instance of HTTPResponse or of whatever object is returned by
@@ -1365,6 +1434,7 @@ class HTTPConnection:
         if self.__state != _CS_REQ_SENT or self.__response:
             raise ResponseNotReady(self.__state)
 
+        # 将socket对象、方法名做Response参创建回复对象
         if self.debuglevel > 0:
             response = self.response_class(self.sock, self.debuglevel,
                                            method=self._method)
