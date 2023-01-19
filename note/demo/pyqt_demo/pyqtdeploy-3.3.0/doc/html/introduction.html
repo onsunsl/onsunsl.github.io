@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Introduction &#8212; pyqtdeploy v3.3.0 User Guide</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/riverbank.css" />
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="An Overview of the Deployment Process" href="overview.html" />
+    <link rel="prev" title="User Guide" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="An Overview of the Deployment Process"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="User Guide"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">pyqtdeploy v3.3.0 User Guide</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Introduction</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h1>
+<p><strong class="program">pyqtdeploy</strong> is a tool that, in conjunction with other tools provided
+with Qt, enables the deployment of PyQt applications written with Python v3.7
+or later.  It supports deployment to desktop platforms (Linux, Windows and
+macOS) and to mobile platforms (iOS and Android).</p>
+<p>Normally you would create statically compiled versions of the Python
+interpreter library and any third party extension modules (including PyQt).
+This way your application has no external dependencies.  However there is
+nothing to stop you using shared versions of any of these components in order
+to reduce the size of the application, but at the cost of increasing the
+complexity of the deployment.</p>
+<p><strong class="program">pyqtdeploy</strong> itself requires PyQt5 and Python v3.7 or later.</p>
+<p><strong class="program">pyqtdeploy</strong> works by taking the individual modules of a PyQt
+application, freezing them, and then placing them in a Qt resource file that is
+converted to C++ code by Qt’s <strong class="program">rcc</strong> tool.  Python’s standard library
+is handled in the same way.</p>
+<p><strong class="program">pyqtdeploy</strong> generates a simple C++ wrapper around the Python
+interpreter library that uses the Python import mechanism to enable access to
+the embedded frozen modules in a similar way that Python supports the packaging
+of modules in zip files.</p>
+<p>Finally <strong class="program">pyqtdeploy</strong> generates a target-specific Qt <code class="docutils literal notranslate"><span class="pre">.pro</span></code> file that
+describes all the generated C++ code.  From this Qt’s <strong class="program">qmake</strong> tool is
+used to generate a <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> which will then generate a single executable.
+Further Qt and/or platform specific tools can then be used to convert the
+executable to a target-specific deployable package.</p>
+<p>When run <strong class="program">pyqtdeploy</strong> presents a GUI that allows all the separate
+components to be specified.  This information is stored in a
+<strong class="program">pyqtdeploy</strong> project file.</p>
+<p><strong class="program">pyqtdeploy</strong> does not (yet) perform auto-discovery of Python standard
+library modules or third party modules to be included with the application.
+You must specify these yourself.  However it does understand the
+inter-dependencies within the standard library and external modules, so you
+only need to specify those packages that your application explicitly imports.</p>
+<p>A companion program <strong class="program">pyqtdeploy-sysroot</strong> is used to create a system
+root (<em>sysroot</em>) directory containing target-specific installations of
+components (e.g. Python itself and PyQt) that are to be linked with the
+application.</p>
+<p>Another companion program <strong class="program">pyqtdeploy-build</strong> is then run from the
+command line (or a shell script or batch file) to generate the application’s
+C++ code from a project file.</p>
+<p><strong class="program">pyqtdeploy</strong> does not itself generate a final distribution package,
+i.e. one that is handled by a target platform’s package management system.
+This is left to the target platform’s standard packaging tools.  For desktop
+targets the <a class="reference external" href="https://build-system.fman.io">fman Build System</a> is an
+alternative solution that includes support for <code class="docutils literal notranslate"><span class="pre">.exe</span></code> files (for Windows),
+<code class="docutils literal notranslate"><span class="pre">.dmg</span></code> files (for macOS) and <code class="docutils literal notranslate"><span class="pre">.deb</span></code> and <code class="docutils literal notranslate"><span class="pre">.rpm</span></code> files (for Linux).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Creating a single executable (particularly one with no external
+dependencies) from a complex Python application (particularly one that uses
+external C extension modules) is not a simple task.  It requires experience
+of C code, compilers, build systems and the ability to debug associated
+problems.  You have been warned!</p>
+</div>
+<div class="section" id="author">
+<h2>Author<a class="headerlink" href="#author" title="Permalink to this heading">¶</a></h2>
+<p><strong class="program">pyqtdeploy</strong> is copyright (c) Riverbank Computing Limited.  Its
+homepage is <a class="reference external" href="https://www.riverbankcomputing.com/software/pyqtdeploy/">https://www.riverbankcomputing.com/software/pyqtdeploy/</a>.</p>
+<p>Support may be obtained from the PyQt mailing list at
+<a class="reference external" href="https://www.riverbankcomputing.com/mailman/listinfo/pyqt/">https://www.riverbankcomputing.com/mailman/listinfo/pyqt/</a>.</p>
+</div>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this heading">¶</a></h2>
+<p><strong class="program">pyqtdeploy</strong> is released under the BSD license.</p>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<p><strong class="program">pyqtdeploy</strong> can be downloaded and installed from
+<a class="reference external" href="https://pypi.python.org/pypi/pyqtdeploy/">PyPi</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pyqtdeploy</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Introduction</a><ul>
+<li><a class="reference internal" href="#author">Author</a></li>
+<li><a class="reference internal" href="#license">License</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">User Guide</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="overview.html"
+                          title="next chapter">An Overview of the Deployment Process</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="An Overview of the Deployment Process"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="User Guide"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">pyqtdeploy v3.3.0 User Guide</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Introduction</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2022, Riverbank Computing Limited.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
+    </div>
+  </body>
+</html>
