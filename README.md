@@ -8,3 +8,4 @@
 * [cython与打包](note/demo/pyd_package/readme.md)
 * [pypi私有仓搭建](note/demo/pypi_server_demo/readme.md)
 * [Git老版本](https://github.com/Sjj1024/Git-win)
+* [github加速](./note/tools/github_dns.md)
