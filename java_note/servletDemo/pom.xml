@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>servletDemo1</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <!--    打war包-->
+    <packaging>war</packaging>
+
+    <dependencies>
+
+        <!--  实现Servlet web应用的依赖包 应用里继承HttpServlet类  -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+
+            <!-- 打包时不包含 javax.servlet-api tomcat 环境里已经有了 -->
+            <scope>provided</scope>
+        </dependency>
+
+    </dependencies>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+
+        <!-- 打包编码utf8        -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+
+    <build>
+        <!-- war 包包名       -->
+        <finalName>helloServlet</finalName>
+    </build>
+
+</project>
