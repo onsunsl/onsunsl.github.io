@@ -1,0 +1,27 @@
+
+
+2022-08-09 09:18:16.065739 App start..
+Windows fatal exception: access violation
+
+Current thread 0x00005eac (most recent call first):
+  File "D:\Program Files (x86)\Python38-32\lib\ctypes\__init__.py", line 514 in string_at
+  File "D:/onsunsl.github.io/note/demo/python_trace/crash_dump/a_crash_app.py", line 11 in a_crash_fun
+  File "D:/onsunsl.github.io/note/demo/python_trace/crash_dump/a_crash_app.py", line 19 in <module>
+
+
+2022-08-09 09:20:38.505537 App start..
+Windows fatal exception: access violation
+
+Current thread 0x00006004 (most recent call first):
+  File "D:\Program Files (x86)\Python38-32\lib\ctypes\__init__.py", line 514 in string_at
+  File "D:/onsunsl.github.io/note/demo/python_trace/crash_dump/a_crash_app.py", line 14 in a_crash_fun
+  File "D:/onsunsl.github.io/note/demo/python_trace/crash_dump/a_crash_app.py", line 22 in <module>
+
+
+2022-08-09 09:27:01.467253 App start..
+Windows fatal exception: access violation
+
+Current thread 0x000048a8 (most recent call first):
+  File "D:\Program Files (x86)\Python38-32\lib\ctypes\__init__.py", line 514 in string_at
+  File "D:/onsunsl.github.io/note/demo/python_trace/crash_dump/a_crash_app.py", line 14 in a_crash_fun
+  File "D:/onsunsl.github.io/note/demo/python_trace/crash_dump/a_crash_app.py", line 24 in <module>

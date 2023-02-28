@@ -125,6 +125,7 @@ if verbose:
 
 args.append('sysroot.toml')
 
+print(f"run cmd:{args}")
 run(args)
 
 # Build the demo.

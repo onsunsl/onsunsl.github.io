@@ -114,7 +114,8 @@ if __name__ == '__main__':
 
     for info in socket.getaddrinfo("localhost", 80):
         print(info)
-
+    for info in socket.getaddrinfo("localhost", 80):
+        print(info)
     import requests
     r = requests.get("https://www.baidu.com")
     print(r.status_code)

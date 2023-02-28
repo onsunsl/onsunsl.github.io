@@ -1,0 +1,4 @@
+minidump_32bit_crash_addr.txt
+STACK_TEXT:  
+0012fe80 00000000 0012ff70 00404200 008727b8 test_app+0x429e
+

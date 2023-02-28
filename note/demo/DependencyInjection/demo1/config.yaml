@@ -1,0 +1,10 @@
+
+ui:
+
+  theme:
+
+    primary_palette: Red
+
+
+client:
+    env: DEV

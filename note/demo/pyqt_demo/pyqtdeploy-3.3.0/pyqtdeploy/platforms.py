@@ -112,10 +112,12 @@ class Platform:
         stdout = []
 
         try:
+            print(f"\nRun cmd:{args}")
             with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True) as process:
                 if capture:
                     stdout, _ = process.communicate()
                     stdout = stdout.strip()
+                    print(stdout)
                 else:
                     stdout = None
 
@@ -337,8 +339,9 @@ class AndroidArchitecture(Architecture):
         ndk_root = self.platform.android_ndk_root
         android_api = self.platform.android_api
         toolchain_prefix = self.android_toolchain_prefix
-        android_host = '{}-x86_64'.format(
-                'darwin' if sys.platform == 'darwin' else 'linux')
+        hosts = {"win32": "windows", "darwin": "darwin"}
+        host = hosts.get(sys.platform) or "linux"
+        android_host = '{}-x86_64'.format(host)
 
         # Check the toolchain bin directory.
         self.android_toolchain_bin = os.path.join(ndk_root, 'toolchains',

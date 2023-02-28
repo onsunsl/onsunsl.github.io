@@ -1,0 +1,2 @@
+D:\tools\tools\python366-32with-pdb;
+D:\tools\tools\python366-32with-pdb\DLLs;

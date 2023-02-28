@@ -175,7 +175,8 @@ class OpenSSLComponent(Component):
             # We are cross-compiling.
 
             if self.target_platform_name == 'android':
-                self._install_1_1_android(common_options)
+                # self._install_1_1_android(common_options)
+                pass
 
     def _install_1_1_android(self, common_options):
         """ Install v1.1 for Android on either Linux or MacOS hosts. """

@@ -1,0 +1,14 @@
+Start console mode...
+SetUnhandledExceptionFilter to MyUnhandledExceptionFilter
+DisableSetUnhandledExceptionFilter
+Start console mode...
+SetUnhandledExceptionFilter to MyUnhandledExceptionFilter
+DisableSetUnhandledExceptionFilter
+Python exit code:1
+Start console mode...
+SetUnhandledExceptionFilter to MyUnhandledExceptionFilter
+DisableSetUnhandledExceptionFilter
+Start console mode...
+SetUnhandledExceptionFilter to MyUnhandledExceptionFilter
+DisableSetUnhandledExceptionFilter
+Python exit code:1

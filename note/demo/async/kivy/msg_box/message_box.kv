@@ -1,0 +1,164 @@
+#: import LanTingButton ui.kv.base.button
+#:import t ui.kv.lang.t
+<MessageBoxBase>:
+    size_hint: (None, None)
+    size: (500, 300)
+    FloatLayout:
+        id:float_layout
+        canvas.before:
+            Color:
+                rgba:254/255,254/255,255/255,1
+            RoundedRectangle:
+                pos:self.pos
+                size:self.size
+        LanTingLabel:
+            id:lab_prom
+            markup:True
+            size_hint:.9,1
+            pos_hint:{'center_x':.5,'center_y':.7}
+            font_name: t.t("lanting")
+            color:102/255,102/255,102/255,1
+            font_size:'20pt'
+            bold:True
+            text_size:self.size
+            halign:'center'
+            valign:'middle'
+            text: root.show_msg
+            shorten: False
+            
+        BoxLayout:
+            id: button_layout
+            size_hint:None,None
+            size:310,60
+            pos_hint:{'center_x':.5,'center_y':.25}
+            spacing:10
+            LanTingButton:
+                id: btn_n_id
+                text: t.t(root.btn_n_text)
+                size_hint:.5, 1
+                on_release: root.close(False)
+                background_normal: root.get_kv_icon("button-normal.png")
+                background_down: root.get_kv_icon("button-press.png")
+                color:33/255,44/255,103/255,1
+                focus: True
+                on_focus: root.on_btn_focus(self)
+
+            LanTingButton:
+                color: 1,1,1,1
+                id: btn_y_id
+                size_hint:.5, 1
+                text: t.t(root.btn_y_text)
+                on_release: root.close(True)
+                background_normal: root.get_kv_icon("key_enter.png")
+                background_down: root.get_kv_icon("confirm-press.png")
+                on_focus: root.on_btn_focus(self)
+
+<MessageBoxIcon>:
+    size_hint: (None, None)
+    size: (500, 300)
+    FloatLayout:
+        orientation: "vertical"
+        canvas.before:
+            Color:
+                rgba:254/255,254/255,255/255,1
+            RoundedRectangle:
+                pos:self.pos
+                size:self.size
+        BoxLayout:
+            size_hint:None,None
+            size:310,45                              # control icon size
+            pos_hint:{'center_x':.5,'center_y':.75}  # control icon position
+            AsyncImage:
+                id: hint_img
+                source: root.hint_img
+
+        LanTingLabel:
+            id: title
+            color: 102/255,102/255,102/255,1
+            pos_hint:{'center_x':.5,'center_y':.55}
+            shorten: False
+            font_size:'20pt'
+            bold:True
+            halign:'center'
+            valign:'middle'
+            text: root.show_title
+
+        BoxLayout:
+            id: button_layout
+            size_hint:None,None
+            size:310,60
+            pos_hint:{'center_x':.5,'center_y':.2}
+            spacing:10
+            LanTingButton:
+                id: btn_n_id
+                focus: True
+                text: root.btn_n_text
+                size_hint:.5, 1
+                background_normal: root.get_kv_icon("button-normal.png")
+                background_down: root.get_kv_icon("button-press.png")
+                color: 33/255,44/255,103/255,1
+                on_release: root.press_no()
+                on_focus: root.on_btn_focus(self)
+
+            LanTingButton:
+                color: 1,1,1,1
+                id: btn_y_id
+                size_hint:.5, 1
+                text: root.btn_y_text
+                background_normal: root.get_kv_icon("key_enter.png")
+                background_down: root.get_kv_icon("confirm-press.png")
+                on_release: root.press_yes()
+                on_focus: root.on_btn_focus(self)
+
+<MessageBoxInfoData>:
+    size_hint: (None, None)
+    size: (500, 300)
+    FloatLayout:
+        id:float_layout
+        canvas.before:
+            Color:
+                rgba:254/255,254/255,255/255,1
+            RoundedRectangle:
+                pos:self.pos
+                size:self.size
+        LanTingLabel:
+            id:lab_prom
+            markup:True
+            size_hint:.9,1
+            pos_hint:{'center_x':.5,'center_y':.7}
+            font_name: t.t("lanting")
+            color:102/255,102/255,102/255,1
+            font_size:'20pt'
+            bold:True
+            text_size:self.size
+            halign:'center'
+            valign:'middle'
+            text: root.show_msg
+            shorten: False
+
+        BoxLayout:
+            id: button_layout
+            size_hint:None,None
+            size:310,60
+            pos_hint:{'center_x':.5,'center_y':.25}
+            spacing:10
+            LanTingButton:
+                id: btn_n_id
+                text: t.t(root.btn_n_text)
+                size_hint:.5, 1
+                on_release: root.close(False)
+                background_normal: root.get_kv_icon("button-normal.png")
+                background_down: root.get_kv_icon("button-press.png")
+                color:33/255,44/255,103/255,1
+                focus: True
+                on_focus: root.on_btn_focus(self)
+
+            LanTingButton:
+                color: 1,1,1,1
+                id: btn_y_id
+                size_hint:.5, 1
+                text: t.t(root.btn_y_text)
+                on_release: root.close(True)
+                background_normal: root.get_kv_icon("key_enter.png")
+                background_down: root.get_kv_icon("confirm-press.png")
+                on_focus: root.on_btn_focus(self)
