@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+    <!-- 引用db.properties配置文件 -->
+    <properties resource="db.properties"/>
+    
+    <settings>
+        <setting name="logImpl" value="STDOUT_LOGGING"/>
+    </settings>
+
+    <!-- mybatis别名定义 -->
+    <typeAliases>
+        <package name="com.demo.dto"/>
+    </typeAliases>
+
+    <!-- 环境配置 -->
+    <environments default="dev">
+        <environment id="dev">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <!-- 这里驱动取了db.properties文件配置字段driver-->
+                <property name="driver" value="${driver}"/>
+                <!-- 这里驱动取了db.properties文件配置字段url-->
+                <property name="url" value="${url}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!--  映射文件 -->
+    <mappers>
+        <mapper resource="mapper/PersonMapper.xml"/>
+    </mappers>
+
+
+    <!--
+    配置必须按这个顺序来（否则会报错）：
+    (properties， settings， typeAliases， typeHandlers， objectFactory，
+    objectWrapperFactory， plugins， environments， databaseIdProvider，
+    mappers)
+    -->
+
+</configuration>

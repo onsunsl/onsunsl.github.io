@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.demo.dao.PersonDao">
+
+    <!-- 删除表 -->
+    <update id="dropTable">
+        drop table if exists person;
+    </update>
+
+    <!-- 创建表 -->
+    <update id="createTable">
+        CREATE TABLE IF NOT EXISTS `person`
+        (
+            `id`
+            INTEGER
+            NOT
+            NULL
+            PRIMARY
+            KEY
+            AUTOINCREMENT,
+            `name`
+            TEXT,
+            `age`
+            INTEGER
+        )
+
+    </update>
+
+    <!-- 查询全部 -->
+    <select id="selectAll" resultType="Person">
+        select *
+        from person
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultType="Person">
+        select *
+        from person
+        where id = #{id} limit 1
+    </select>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        delete
+        from person
+        where id = #{id}
+    </delete>
+
+    <!-- 插入-->
+    <insert id="insert" useGeneratedKeys="true">
+        insert into person (name, age)
+        values (#{name}, #{age})
+    </insert>
+
+    <!-- 更新 -->
+    <update id="update">
+        update person
+        set name = #{name},
+            age  = #{age}
+        where id = #{id}
+    </update>
+
+</mapper>
