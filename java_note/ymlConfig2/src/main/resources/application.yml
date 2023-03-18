@@ -1,0 +1,7 @@
+spring:
+  profiles:
+    active: @env@
+
+  application:
+    name: 多环境配置demo
+
